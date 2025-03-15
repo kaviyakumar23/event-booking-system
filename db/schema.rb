@@ -38,8 +38,18 @@ ActiveRecord::Schema[7.1].define(version: 2025_03_15_034558) do
     t.index ["user_id"], name: "index_customers_on_user_id"
   end
 
+  create_table "event_organizers", force: :cascade do |t|
+    t.bigint "user_id"
+    t.string "name"
+    t.string "phone"
+    t.string "company_name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id"], name: "index_event_organizers_on_user_id"
+  end
+
   create_table "events", force: :cascade do |t|
-    t.bigint "organizer_id"
+    t.bigint "event_organizer_id"
     t.string "title"
     t.text "description"
     t.datetime "event_date"
@@ -48,17 +58,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_03_15_034558) do
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["organizer_id"], name: "index_events_on_organizer_id"
-  end
-
-  create_table "organizers", force: :cascade do |t|
-    t.bigint "user_id"
-    t.string "name"
-    t.string "phone"
-    t.string "company_name"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["user_id"], name: "index_organizers_on_user_id"
+    t.index ["event_organizer_id"], name: "index_events_on_event_organizer_id"
   end
 
   create_table "tickets", force: :cascade do |t|
@@ -85,7 +85,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_03_15_034558) do
   add_foreign_key "bookings", "events"
   add_foreign_key "bookings", "tickets"
   add_foreign_key "customers", "users"
-  add_foreign_key "events", "users", column: "organizer_id"
-  add_foreign_key "organizers", "users"
+  add_foreign_key "event_organizers", "users"
+  add_foreign_key "events", "users", column: "event_organizer_id"
   add_foreign_key "tickets", "events"
 end

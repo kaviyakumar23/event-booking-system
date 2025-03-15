@@ -1,6 +1,6 @@
 require "test_helper"
 
-class OrganizerTest < ActiveSupport::TestCase
+class EventOrganizerTest < ActiveSupport::TestCase
   # test "the truth" do
   #   assert true
   # end
