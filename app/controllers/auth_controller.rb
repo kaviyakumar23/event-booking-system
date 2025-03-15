@@ -1,7 +1,33 @@
 class AuthController < ApplicationController
+    include JwtAuthentication
     skip_before_action :verify_authenticity_token
     
     def signin
+      @user = User.find_by(email: signin_params[:email])
+
+      if @user&.authenticate(signin_params[:password])
+        # Update last signin timestamp
+        @user.update(last_signin_at: Time.current)
+        
+        # Get the appropriate profile based on user role
+        @profile = @user.role == 'event_organizer' ? @user.event_organizer : @user.customer
+
+        # Generate JWT token
+        token = generate_jwt_token(@user)
+
+        render json: {
+          message: 'Signin successful',
+          token: token,
+          user: {
+            id: @user.id,
+            email: @user.email,
+            role: @user.role,
+            profile: @profile
+          }
+        }
+      else
+        render json: { error: 'Invalid email or password' }, status: :unauthorized
+      end
     end
 
     def register
@@ -50,5 +76,9 @@ class AuthController < ApplicationController
 
     def profile_params
       params.require(:profile).permit(:name, :phone, :company_name)
+    end
+
+    def signin_params
+      params.require(:user).permit(:email, :password)
     end
 end
