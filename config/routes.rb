@@ -9,4 +9,6 @@ Rails.application.routes.draw do
   post '/signin', to: 'auth#signin'
 
   resources :events
+  resources :bookings
+  resources :tickets
 end
