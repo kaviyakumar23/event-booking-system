@@ -10,6 +10,8 @@ gem "sprockets-rails"
 
 gem 'pg', '~> 1.5', '>= 1.5.9'
 
+gem 'bcrypt', '~> 3.1', '>= 3.1.12'
+
 # Use the Puma web server [https://github.com/puma/puma]
 gem "puma", ">= 5.0"
 
