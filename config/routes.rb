@@ -7,4 +7,6 @@ Rails.application.routes.draw do
 
   post '/register', to: 'auth#register'
   post '/signin', to: 'auth#signin'
+
+  resources :events
 end
