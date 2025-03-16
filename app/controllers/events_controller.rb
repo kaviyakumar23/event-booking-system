@@ -42,7 +42,16 @@ class EventsController < ApplicationController
   end
 
   def update
+    changes = {}
+    event_params.each do |param, value|
+      changes[param] = value if @event.send(param) != value
+    end
+
     if @event.update(event_params)
+      # Only send notifications if there are changes
+      if changes.present?
+        EventUpdateNotificationJob.perform_async(@event.id, changes)
+      end
       render json: @event
     else
       render json: { errors: @event.errors.full_messages }, status: :unprocessable_entity

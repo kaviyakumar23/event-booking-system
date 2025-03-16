@@ -9,7 +9,7 @@ class Booking < ApplicationRecord
   validates :status, inclusion: { in: ['pending', 'confirmed', 'cancelled'] }
   
   before_validation :calculate_total_amount, on: :create
-  after_create :update_ticket_remaining
+  after_create :update_ticket_remaining, :send_booking_confirmation
   after_update :handle_status_change, if: :saved_change_to_status?
 
   private
@@ -28,6 +28,12 @@ class Booking < ApplicationRecord
   def handle_status_change
     if self.status_previous_change[0] == 'confirmed' && self.status == 'cancelled'
       self.ticket.update(remaining: self.ticket.remaining + self.quantity)
+    end
+  end
+  
+  def send_booking_confirmation
+    if self.status == 'confirmed'
+      BookingConfirmationJob.perform_async(self.id)
     end
   end
 
