@@ -41,6 +41,6 @@ module JwtAuthentication
   end
 
   def jwt_secret_key
-    Rails.application.credentials.jwt_secret_key
+    Rails.application.credentials.jwt_secret_key || ENV['JWT_SECRET_KEY']
   end
 end
