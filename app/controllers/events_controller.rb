@@ -35,35 +35,54 @@ class EventsController < ApplicationController
     @event = current_user.event_organizer.events.build(event_params)
 
     if @event.save
+      Rails.logger.info("Event created: #{@event.id} by organizer #{current_user.event_organizer.id}")
       render json: @event, status: :created
     else
+      Rails.logger.warn("Event creation failed: #{@event.errors.full_messages}")
       render json: { errors: @event.errors.full_messages }, status: :unprocessable_entity
     end
+  rescue StandardError => e
+    Rails.logger.error("Error creating event: #{e.message}")
+    render json: { error: 'An error occurred while creating the event' }, status: :internal_server_error
   end
 
   def update
-    changes = {}
-    event_params.each do |param, value|
-      changes[param] = value if @event.send(param) != value
-    end
-
-    if @event.update(event_params)
-      # Only send notifications if there are changes
-      if changes.present?
-        EventUpdateNotificationJob.perform_async(@event.id, changes)
+    begin
+      changes = {}
+      event_params.each do |param, value|
+        changes[param] = value if @event.send(param) != value
       end
-      render json: @event
-    else
-      render json: { errors: @event.errors.full_messages }, status: :unprocessable_entity
+
+      if @event.update(event_params)
+        # Only send notifications if there are changes
+        if changes.present?
+          EventUpdateNotificationJob.perform_async(@event.id, changes)
+          Rails.logger.info("Event updated: #{@event.id} with changes: #{changes}")
+        end
+        render json: @event
+      else
+        Rails.logger.warn("Event update failed: #{@event.errors.full_messages}")
+        render json: { errors: @event.errors.full_messages }, status: :unprocessable_entity
+      end
+    rescue StandardError => e
+      Rails.logger.error("Error updating event: #{e.message}")
+      render json: { error: 'An error occurred while updating the event' }, status: :internal_server_error
     end
   end
 
   def destroy
-    if @event.bookings.exists?
-      render json: { error: 'Cannot delete event with existing bookings' }, status: :unprocessable_entity
-    else
-      @event.destroy
-      head :no_content
+    begin
+      if @event.bookings.exists?
+        Rails.logger.info("Event deletion rejected - has bookings: #{@event.id}")
+        render json: { error: 'Cannot delete event with existing bookings' }, status: :unprocessable_entity
+      else
+        @event.destroy
+        Rails.logger.info("Event deleted: #{@event.id}")
+        head :no_content
+      end
+    rescue StandardError => e
+      Rails.logger.error("Error deleting event: #{e.message}")
+      render json: { error: 'An error occurred while deleting the event' }, status: :internal_server_error
     end
   end
 

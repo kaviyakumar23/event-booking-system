@@ -22,25 +22,40 @@ class BookingsController < ApplicationController
   end
 
   def create
-    @booking = current_user.customer.bookings.build(booking_params)
-    @booking.booking_date = Time.current
+    begin
+      @booking = current_user.customer.bookings.build(booking_params)
+      @booking.booking_date = Time.current
 
-    if validate_ticket_availability && @booking.save
-      render json: @booking, status: :created
-    else
-      render json: { errors: @booking.errors.full_messages }, status: :unprocessable_entity
+      if validate_ticket_availability && @booking.save
+        Rails.logger.info("Booking created: #{@booking.id} for event #{@booking.event_id} by customer #{current_user.customer.id}")
+        render json: @booking, status: :created
+      else
+        Rails.logger.warn("Booking creation failed: #{@booking.errors.full_messages}")
+        render json: { errors: @booking.errors.full_messages }, status: :unprocessable_entity
+      end
+    rescue StandardError => e
+      Rails.logger.error("Error creating booking: #{e.message}")
+      render json: { error: 'An error occurred while creating the booking' }, status: :internal_server_error
     end
   end
 
   def update
-    if @booking.status == 'pending' && booking_params[:status] == 'cancelled'
-      if @booking.update(status: 'cancelled')
-        render json: @booking
+    begin
+      if @booking.status == 'pending' && booking_params[:status] == 'cancelled'
+        if @booking.update(status: 'cancelled')
+          Rails.logger.info("Booking cancelled: #{@booking.id}")
+          render json: @booking
+        else
+          Rails.logger.warn("Booking cancellation failed: #{@booking.errors.full_messages}")
+          render json: { errors: @booking.errors.full_messages }, status: :unprocessable_entity
+        end
       else
-        render json: { errors: @booking.errors.full_messages }, status: :unprocessable_entity
+        Rails.logger.info("Invalid booking status transition from #{@booking.status} to #{booking_params[:status]}")
+        render json: { error: 'Invalid status transition' }, status: :unprocessable_entity
       end
-    else
-      render json: { error: 'Invalid status transition' }, status: :unprocessable_entity
+    rescue StandardError => e
+      Rails.logger.error("Error updating booking: #{e.message}")
+      render json: { error: 'An error occurred while updating the booking' }, status: :internal_server_error
     end
   end
 

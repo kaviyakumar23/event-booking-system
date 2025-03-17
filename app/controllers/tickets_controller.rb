@@ -18,19 +18,30 @@ class TicketsController < ApplicationController
   end
 
   def create
-    @event = Event.find(params[:event_id])
-    
-    # Ensure the current user owns the event
-    unless @event.event_organizer_id == current_user.event_organizer.id
-      return render json: { error: 'Unauthorized to create tickets for this event' }, status: :forbidden
-    end
+    begin
+      @event = Event.find(params[:event_id])
+      
+      # Ensure the current user owns the event
+      unless @event.event_organizer_id == current_user.event_organizer.id
+        Rails.logger.warn("Unauthorized ticket creation attempt for event #{params[:event_id]} by organizer #{current_user.event_organizer.id}")
+        return render json: { error: 'Unauthorized to create tickets for this event' }, status: :forbidden
+      end
 
-    @ticket = @event.tickets.build(ticket_params)
+      @ticket = @event.tickets.build(ticket_params)
 
-    if @ticket.save
-      render json: @ticket, status: :created
-    else
-      render json: { errors: @ticket.errors.full_messages }, status: :unprocessable_entity
+      if @ticket.save
+        Rails.logger.info("Ticket created: #{@ticket.id} for event #{@event.id}")
+        render json: @ticket, status: :created
+      else
+        Rails.logger.warn("Ticket creation failed: #{@ticket.errors.full_messages}")
+        render json: { errors: @ticket.errors.full_messages }, status: :unprocessable_entity
+      end
+    rescue ActiveRecord::RecordNotFound
+      Rails.logger.warn("Event not found: #{params[:event_id]}")
+      render json: { error: 'Event not found' }, status: :not_found
+    rescue StandardError => e
+      Rails.logger.error("Error creating ticket: #{e.message}")
+      render json: { error: 'An error occurred while creating the ticket' }, status: :internal_server_error
     end
   end
 
