@@ -95,7 +95,7 @@ class EventsController < ApplicationController
   end
 
   def event_params
-    params.require(:event).permit(
+    permitted = params.require(:event).permit(
       :title,
       :description,
       :event_date,
@@ -103,6 +103,14 @@ class EventsController < ApplicationController
       :venue_address,
       :status
     )
+    
+    # Check for unpermitted parameters
+    unpermitted = params[:event].keys - permitted.keys
+    if unpermitted.any?
+      raise ActionController::ParameterMissing.new("Unpermitted parameters: #{unpermitted.join(', ')}")
+    end
+
+    permitted
   end
 
   def authorize_event_access!

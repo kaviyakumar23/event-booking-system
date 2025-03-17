@@ -8,9 +8,17 @@ class TicketsController < ApplicationController
   before_action :authorize_ticket_access!, only: [:update, :destroy]
 
   def index
-    @event = Event.find(params[:event_id])
-    @tickets = @event.tickets
-    render json: @tickets
+    begin
+      @event = Event.find(params[:event_id])
+      @tickets = @event.tickets
+      render json: @tickets
+    rescue ActiveRecord::RecordNotFound
+      Rails.logger.warn("Event not found: #{params[:event_id]}")
+      render json: { error: 'Event not found' }, status: :not_found
+    rescue StandardError => e
+      Rails.logger.error("Error fetching tickets: #{e.message}")
+      render json: { error: 'An error occurred while fetching tickets' }, status: :internal_server_error
+    end
   end
 
   def show
